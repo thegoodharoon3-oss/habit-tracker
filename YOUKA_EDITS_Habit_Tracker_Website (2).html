@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YOUKA_EDITS Habit Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --gray-dark:#0A1747;
+    --gray-med:#1B3FE0;
+    --gray-soft:#DCE4F7;
+    --gray-pale:#FFF8EC;
+    --border:#C9D3F2;
+    --text:#0A1747;
+    --white:#ffffff;
+    --green:#FFC940;
+    --green-light:#FFE9A8;
+    --green-dark:#1B3FE0;
+    --royal:#1B3FE0;
+    --gold:#FFC940;
+    --ink:#0A1747;
+    --cream:#FFF8EC;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+    background:var(--white);
+    color:var(--text);
+  }
+  body.rtl{font-family:"Segoe UI","Tahoma","Geeza Pro",Arial,sans-serif;}
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:10px 24px;
+    background:var(--white);
+    border-bottom:3px solid transparent;
+    border-image:linear-gradient(90deg,var(--royal),var(--gold)) 1;
+    position:sticky;
+    top:0;
+    z-index:20;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .brand{display:flex;align-items:center;gap:8px;}
+  .brand svg{width:26px;height:26px;flex:none;}
+  .brand .name{font-weight:800;font-size:14px;letter-spacing:.2px;}
+  .brand .name .b1{color:var(--ink);}
+  .brand .name .b2{color:var(--royal);}
+  .brand .tag{font-size:9px;color:var(--gray-med);letter-spacing:1px;margin-top:1px;}
+
+  nav.months{display:flex;flex-wrap:wrap;gap:4px;}
+  nav.months button{
+    border:1px solid var(--border);
+    background:var(--white);
+    color:var(--text);
+    font-size:12px;
+    padding:6px 10px;
+    border-radius:6px;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  nav.months button:hover{background:var(--gray-pale);}
+  nav.months button.active{background:var(--gray-dark);color:#fff;border-color:var(--gray-dark);}
+  nav.months button.dash{border-color:var(--green-dark);color:var(--green-dark);font-weight:700;}
+  nav.months button.dash.active{background:var(--green-dark);color:#fff;}
+
+  .topbar-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  button.ghost-btn{
+    border:1px solid var(--border);background:#fff;color:var(--text);
+    font-size:12px;padding:6px 10px;border-radius:6px;cursor:pointer;font-family:inherit;white-space:nowrap;
+  }
+  button.ghost-btn:hover{background:var(--gray-pale);}
+
+  .reminder-wrap{position:relative;}
+  .reminder-panel{
+    position:absolute;top:120%;inset-inline-end:0;background:#fff;border:1px solid var(--border);
+    border-radius:8px;padding:10px;box-shadow:0 8px 20px rgba(10,23,71,.15);
+    display:flex;gap:6px;align-items:center;z-index:30;
+  }
+  .reminder-panel input[type="time"]{padding:6px;border:1px solid var(--border);border-radius:6px;font-family:inherit;}
+  .reminder-note{font-size:9px;color:var(--gray-med);max-width:150px;line-height:1.4;}
+
+  main{padding:24px 28px 60px;max-width:1400px;margin:0 auto;}
+
+  h1.title{font-size:38px;font-weight:800;color:var(--gray-dark);margin:0 0 14px 0;}
+
+  .stats{display:flex;gap:36px;align-items:center;margin-bottom:22px;flex-wrap:wrap;}
+  .stat-label{font-size:11px;color:var(--gray-med);font-weight:700;margin-bottom:2px;}
+  .stat-value{font-size:20px;font-weight:800;color:var(--text);}
+  .progress-wrap{display:flex;align-items:center;gap:10px;}
+  .progress-track{width:180px;height:14px;background:var(--gray-soft);border-radius:7px;overflow:hidden;}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--green-light),var(--green));border-radius:7px;transition:width .3s;}
+
+  .wheel-wrap{position:relative;width:118px;height:118px;flex:none;}
+  .wheel-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;}
+  .wheel-center b{font-size:19px;color:var(--ink);}
+  .wheel-center span{font-size:8px;color:var(--gray-med);font-weight:700;max-width:70px;text-align:center;line-height:1.2;margin-top:2px;}
+
+  .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:4px;margin-bottom:6px;}
+  table.habit-table{border-collapse:collapse;width:100%;font-size:12px;}
+  table.habit-table th, table.habit-table td{
+    border:1px solid var(--border);
+    text-align:center;
+    padding:0;
+    min-width:26px;
+    height:24px;
+  }
+  .myhabits-th{
+    background:var(--gray-soft);
+    font-weight:700;
+    text-align:left !important;
+    padding:6px 10px !important;
+    min-width:180px;
+    font-size:14px;
+  }
+  .week-th{background:var(--gray-med);color:#fff;font-weight:700;font-size:11px;}
+  .weekday-th{background:var(--gray-soft);font-size:10px;font-weight:700;}
+  .daynum-th{background:var(--gray-soft);font-size:10px;font-weight:700;}
+  .habit-name{
+    text-align:left !important;
+    padding:0 !important;
+    font-size:12px;
+    white-space:nowrap;
+  }
+  input.habit-name-input{
+    width:100%;height:100%;border:none;background:transparent;
+    font-size:12px;color:var(--text);padding:4px 10px;font-family:inherit;
+  }
+  input.habit-name-input:focus{outline:2px solid var(--green);background:#fff;}
+  .del-habit{
+    color:var(--gray-med);cursor:pointer;font-size:12px;width:26px;
+    border-left:none !important;
+  }
+  .del-habit:hover{color:#c0392b;background:var(--gray-pale);}
+  .add-habit-cell{
+    text-align:left !important;padding:6px 10px !important;color:var(--green-dark);
+    font-weight:700;font-size:12px;cursor:pointer;background:var(--white);
+  }
+  .add-habit-cell:hover{background:var(--green-light);}
+  tr.odd td{background:var(--white);}
+  tr.even td{background:var(--gray-pale);}
+  .chk{cursor:pointer;user-select:none;font-weight:700;color:transparent;}
+  .chk.checked{background:var(--gold);color:var(--ink);}
+  .chk:hover{outline:2px solid var(--royal);outline-offset:-2px;}
+
+  .summary-row td, .summary-row th{font-size:10px;background:var(--gray-pale);}
+  .summary-label{
+    background:var(--gray-soft) !important;
+    font-weight:700;
+    text-align:center !important;
+    font-size:10px;
+    line-height:1.5;
+  }
+
+  .chart-box{border:1px solid var(--border);border-radius:4px;padding:12px;margin:18px 0;max-width:900px;}
+  .section-title{font-size:20px;font-weight:800;color:var(--royal);margin:26px 0 10px;}
+  .mood-row td{background:#fff;}
+  .mood-label{background:var(--gray-pale) !important;font-weight:700;font-size:11px;text-align:left !important;padding:4px 10px !important;}
+  input.mood-input{width:100%;height:100%;border:none;text-align:center;font-size:10px;background:transparent;}
+  input.mood-input:focus{outline:2px solid var(--green);}
+
+  .analysis-flex{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;}
+  table.analysis-table{border-collapse:collapse;font-size:12px;}
+  table.analysis-table th,table.analysis-table td{border:1px solid var(--border);padding:5px 14px;text-align:center;}
+  table.analysis-table th{background:var(--gray-med);color:#fff;}
+  table.analysis-table tr:nth-child(even) td{background:var(--gray-pale);}
+
+  .insights-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:6px;}
+  .insight-card{background:var(--gray-pale);border-radius:8px;padding:12px 14px;font-size:12.5px;line-height:1.6;}
+
+  .badges-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;margin-top:10px;}
+  .badge-card{border:1px solid var(--border);border-radius:10px;padding:12px 8px;text-align:center;background:#fff;}
+  .badge-card.earned{background:linear-gradient(160deg,#fff,var(--gray-pale));border-color:var(--gold);box-shadow:0 4px 14px rgba(255,201,64,.35);}
+  .badge-card.locked{opacity:.55;}
+  .badge-emoji{font-size:26px;margin-bottom:6px;}
+  .badge-label{font-size:11px;font-weight:700;}
+  .badge-progress{font-size:10px;color:var(--gray-med);margin-top:4px;}
+
+  .dash-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-top:24px;}
+  .month-card{border:1px solid var(--border);border-top-width:4px;border-radius:6px;overflow:hidden;}
+  .month-card h3{margin:0;background:var(--gray-med);color:#fff;padding:8px 10px;font-size:14px;}
+  .month-card .row{display:flex;justify-content:space-between;padding:6px 10px;font-size:12px;border-top:1px solid var(--border);}
+  .month-card .row b{color:var(--text);}
+  .month-card .row.progress b{color:var(--gold);background:var(--ink);padding:1px 8px;border-radius:10px;font-size:11px;}
+
+  footer{text-align:center;font-size:10px;color:var(--gray-med);padding:20px;font-style:italic;}
+
+  .login-wrap{max-width:380px;margin:70px auto;padding:32px 28px;border:1px solid var(--border);border-radius:14px;text-align:center;box-shadow:0 10px 30px rgba(10,23,71,.08);}
+  .login-wrap h1{font-size:24px;margin:0 0 6px;color:var(--gray-dark);}
+  .login-wrap p{font-size:13px;color:var(--gray-med);margin:0 0 20px;line-height:1.5;}
+  .login-wrap input{width:100%;padding:12px 14px;font-size:15px;border:1px solid var(--border);border-radius:8px;margin-bottom:14px;font-family:inherit;text-align:center;}
+  .login-wrap input:focus{outline:2px solid var(--gold);}
+  .login-wrap button.primary{
+    width:100%;padding:12px;font-size:15px;font-weight:700;border:none;border-radius:8px;
+    background:linear-gradient(90deg,var(--royal),var(--gold));color:#fff;cursor:pointer;font-family:inherit;
+  }
+  .login-wrap button.primary:hover{opacity:.92;}
+  .login-note{font-size:10px;color:var(--gray-med);margin-top:14px;line-height:1.5;}
+
+  body.rtl .myhabits-th, body.rtl .habit-name, body.rtl .add-habit-cell, body.rtl .mood-label{text-align:right !important;}
+  body.rtl .analysis-table td:first-child, body.rtl .analysis-table th:first-child{text-align:right !important;}
+
+  @media print{
+    .topbar-actions, nav.months, .add-habit-cell, .del-habit, footer, .login-wrap{display:none !important;}
+    body{background:#fff;}
+    .topbar{position:static;}
+  }
+
+  @media (max-width:700px){
+    h1.title{font-size:28px;}
+    .stats{gap:20px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="#1B3FE0" stroke="#0A1747" stroke-width="3"/><polygon points="34,28 34,72 74,50" fill="#FFF8EC" stroke="#0A1747" stroke-width="2"/><circle cx="66" cy="34" r="9" fill="#FFC940" stroke="#0A1747" stroke-width="1.5"/></svg>
+    <div>
+      <div class="name"><span class="b1">YOUKA</span><span class="b2">_EDITS</span></div>
+      <div class="tag" id="brandTag">HABIT TRACKER</div>
+    </div>
+  </div>
+  <nav class="months" id="monthNav"></nav>
+  <div class="topbar-actions" id="topbarActions"></div>
+</header>
+
+<main id="content"></main>
+
+<footer><span id="footerText">YOUKA_EDITS &mdash; Video &middot; Thumbnails &middot; AI</span></footer>
+
+<script>
+const MONTHS_EN = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const MONTHS_AR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const MONTHS_EN_SHORT = MONTHS_EN.map(m=>m.slice(0,3));
+const MONTHS_AR_SHORT = ["ينا","فبر","مار","أبر","ماي","يون","يول","أغس","سبت","أكت","نوف","ديس"];
+const DAYS_IN_MONTH = [31,28,31,30,31,30,31,31,30,31,30,31];
+const WEEKDAY_EN = ["Sa","Su","Mo","Tu","We","Th","Fr"];
+const WEEKDAY_AR = ["س","ح","ن","ث","ر","خ","ج"];
+
+const STORAGE_PREFIX = "youka_habit_tracker_v2_";
+const SESSION_KEY = "youka_habit_tracker_session";
+const LANG_KEY = "youka_habit_tracker_lang";
+
+const PALETTE = ['#FF6B6B','#4ECDC4','#FFD93D','#6BCF7F','#4D96FF','#FF922B','#C77DFF','#FF66B2','#38BEFF','#FFB627','#00C2A8','#F76E11'];
+
+const ENGLISH_DEFAULTS = [
+  "Wake up at 05:00","Gym","Reading / Learning","Day Planning","Budget Tracking",
+  "Project Work","No Alcohol","Social Media Detox","Goal Journaling","Cold Shower"
+];
+const ARABIC_DEFAULTS = [
+  "استيقظ الساعة ٠٥:٠٠","الجيم","قراءة / تعلّم","تخطيط اليوم","متابعة الميزانية",
+  "شغل على المشروع","من غير كحول","ديتوكس من السوشيال ميديا","يوميات الأهداف","دش بارد"
+];
+
+const BADGE_DEFS = [
+  { id:'streak7',   type:'streak',  min:7,   emoji:'🥉' },
+  { id:'streak30',  type:'streak',  min:30,  emoji:'🥈' },
+  { id:'streak100', type:'streak',  min:100, emoji:'🥇' },
+  { id:'total50',   type:'total',   min:50,  emoji:'⭐' },
+  { id:'total200',  type:'total',   min:200, emoji:'🌟' },
+  { id:'total500',  type:'total',   min:500, emoji:'💫' },
+  { id:'perfect7',  type:'perfect', min:7,   emoji:'🏆' }
+];
+const BADGE_KEY_MAP = {
+  streak7:'badgeStreak7', streak30:'badgeStreak30', streak100:'badgeStreak100',
+  total50:'badgeTotal50', total200:'badgeTotal200', total500:'badgeTotal500',
+  perfect7:'badgePerfect7'
+};
+
+const I18N = {
+  en:{
+    tagline:"HABIT TRACKER",
+    dashboard:"Dashboard",
+    loginTitle:"Welcome",
+    loginSubtitle:"Enter your phone number to save and continue your progress",
+    phonePlaceholder:"Phone number",
+    continueBtn:"Continue",
+    loginNote:"Your progress is saved on this device and linked to your number, so it's here whenever you log back in.",
+    logoutBtn:"Logout",
+    logoutConfirm:"Log out? Your progress is saved and will be here next time you log in with this number.",
+    myHabits:"My Habits",
+    week:"Week",
+    addHabit:"+ Add habit",
+    habitsStat:"HABITS",
+    completedStat:"COMPLETED",
+    progressStat:"PROGRESS",
+    doneLabel:"Done",
+    notDoneLabel:"Not Done",
+    progressLabel:"Progress",
+    mentalState:"Mental State",
+    moodLabel:"Mood (1-10)",
+    analysis:"Analysis",
+    habitCol:"Habit",
+    goalCol:"Goal",
+    actualCol:"Actual",
+    streakCol:"Streak",
+    bestStreakCol:"Best",
+    yearlyStats:"Yearly Statistics — Habits",
+    numberOfHabits:"Number of Habits",
+    completedCard:"Completed",
+    progressCard:"Progress",
+    removeTitle:"Remove habit",
+    removeConfirm:"Remove this habit? This clears its history in every month.",
+    keepAtLeast:"Keep at least one habit.",
+    untitled:"Untitled habit",
+    newHabitDefault:"New habit",
+    wheelTitle:"This month",
+    footer:"YOUKA_EDITS — Video · Thumbnails · AI",
+    langBtn:"العربية",
+    exportBtn:"Export",
+    importBtn:"Import",
+    printBtn:"Print / PDF",
+    importSuccess:"Data imported successfully.",
+    importError:"Couldn't read that file. Make sure it's a backup exported from this app.",
+    achievementsTitle:"Achievements",
+    badgeStreak7:"7-Day Streak",
+    badgeStreak30:"30-Day Streak",
+    badgeStreak100:"100-Day Streak",
+    badgeTotal50:"50 Check-ins",
+    badgeTotal200:"200 Check-ins",
+    badgeTotal500:"500 Check-ins",
+    badgePerfect7:"7 Perfect Days",
+    insightsTitle:"Insights & Tips",
+    noInsightsYet:"Check off a few days first and we'll surface patterns and tips here.",
+    reminderTitle:"Daily reminder",
+    reminderSave:"Save",
+    reminderOff:"Turn off",
+    reminderNote:"Notifies you while this tab stays open in your browser.",
+    reminderSavedMsg:"Reminder set! Keep this tab open so it can notify you.",
+    reminderOffMsg:"Reminder turned off.",
+    notifUnsupported:"Notifications aren't supported in this browser.",
+    notifDenied:"Notification permission was denied, so reminders can't show. You can allow notifications for this site in your browser settings."
+  },
+  ar:{
+    tagline:"متابعة العادات",
+    dashboard:"لوحة التحكم",
+    loginTitle:"أهلاً بيك",
+    loginSubtitle:"دخّل رقم تليفونك عشان تحفظ تقدمك وتكمل منه أي وقت",
+    phonePlaceholder:"رقم التليفون",
+    continueBtn:"استمرار",
+    loginNote:"تقدمك بيتحفظ على الجهاز ده ومربوط برقمك، فهتلاقيه تاني أي وقت تدخل بنفس الرقم.",
+    logoutBtn:"تسجيل خروج",
+    logoutConfirm:"تسجّل خروج؟ تقدمك محفوظ وهتلاقيه تاني لما تدخل بنفس الرقم.",
+    myHabits:"عاداتي",
+    week:"أسبوع",
+    addHabit:"+ ضيف عادة",
+    habitsStat:"العادات",
+    completedStat:"المكتمل",
+    progressStat:"التقدم",
+    doneLabel:"تم",
+    notDoneLabel:"لسه",
+    progressLabel:"التقدم",
+    mentalState:"الحالة النفسية",
+    moodLabel:"المزاج (١-١٠)",
+    analysis:"التحليل",
+    habitCol:"العادة",
+    goalCol:"الهدف",
+    actualCol:"الفعلي",
+    streakCol:"الستريك",
+    bestStreakCol:"أفضل رقم",
+    yearlyStats:"الإحصائيات السنوية — العادات",
+    numberOfHabits:"عدد العادات",
+    completedCard:"المكتمل",
+    progressCard:"التقدم",
+    removeTitle:"احذف العادة",
+    removeConfirm:"متأكد عايز تشيل العادة دي؟ هيمسح تاريخها من كل الشهور.",
+    keepAtLeast:"لازم يفضل عادة واحدة على الأقل.",
+    untitled:"عادة من غير اسم",
+    newHabitDefault:"عادة جديدة",
+    wheelTitle:"الشهر ده",
+    footer:"YOUKA_EDITS — فيديو · صور مصغرة · ذكاء اصطناعي",
+    langBtn:"English",
+    exportBtn:"تصدير",
+    importBtn:"استرجاع",
+    printBtn:"طباعة / PDF",
+    importSuccess:"تم استرجاع البيانات بنجاح.",
+    importError:"مش عارفين نقرا الملف ده. تأكد إنه ملف نسخة احتياطية اتصدّر من نفس الموقع.",
+    achievementsTitle:"الإنجازات",
+    badgeStreak7:"ستريك ٧ أيام",
+    badgeStreak30:"ستريك ٣٠ يوم",
+    badgeStreak100:"ستريك ١٠٠ يوم",
+    badgeTotal50:"٥٠ تسجيل",
+    badgeTotal200:"٢٠٠ تسجيل",
+    badgeTotal500:"٥٠٠ تسجيل",
+    badgePerfect7:"٧ أيام مثالية",
+    insightsTitle:"تحليل ونصايح",
+    noInsightsYet:"علّم على كذا يوم الأول وهنطلعلك أنماط ونصايح هنا.",
+    reminderTitle:"تذكير يومي",
+    reminderSave:"حفظ",
+    reminderOff:"إيقاف",
+    reminderNote:"بيبعتلك تنبيه طول ما الصفحة فاتحة عندك في المتصفح.",
+    reminderSavedMsg:"اتحفظ التذكير! سيب الصفحة فاتحة عشان يقدر يبعتلك.",
+    reminderOffMsg:"اتقفل التذكير.",
+    notifUnsupported:"المتصفح ده مش بيدعم الإشعارات.",
+    notifDenied:"مفيش إذن للإشعارات، فمش هيبعتلك تذكير. تقدر تسمح للإشعارات من إعدادات المتصفح للموقع ده."
+  }
+};
+
+let lang = localStorage.getItem(LANG_KEY) || "en";
+let loggedInPhone = null;
+let nextHabitId = 1;
+let habits = [];
+const state = {};
+let currentView = 0; // 0-11 = month index, "dash" = dashboard
+let charts = {};
+
+function t(key){ return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key; }
+function monthName(i){ return lang==='ar' ? MONTHS_AR[i] : MONTHS_EN[i]; }
+function monthShort(i){ return lang==='ar' ? MONTHS_AR_SHORT[i] : MONTHS_EN_SHORT[i]; }
+function weekdayLetter(d){ return (lang==='ar' ? WEEKDAY_AR : WEEKDAY_EN)[d%7]; }
+function habitColor(h){ return h.color || PALETTE[(h.id-1)%PALETTE.length]; }
+
+function setLang(l){
+  lang = l;
+  localStorage.setItem(LANG_KEY, l);
+  document.documentElement.lang = l;
+  document.documentElement.dir = l==='ar' ? 'rtl' : 'ltr';
+  document.body.classList.toggle('rtl', l==='ar');
+  applyStaticText();
+}
+function applyStaticText(){
+  document.getElementById('brandTag').textContent = t('tagline');
+  document.getElementById('footerText').textContent = t('footer');
+  document.title = "YOUKA_EDITS " + (lang==='ar' ? "متابعة العادات" : "Habit Tracker");
+}
+
+function newHabit(name){
+  const h = { id: nextHabitId++, name };
+  h.color = PALETTE[(h.id-1)%PALETTE.length];
+  return h;
+}
+function defaultHabits(){
+  nextHabitId = 1;
+  const names = lang==='ar' ? ARABIC_DEFAULTS : ENGLISH_DEFAULTS;
+  return names.map(newHabit);
+}
+
+// ---- auth / per-phone storage ----
+function dataKeyFor(phone){ return STORAGE_PREFIX + phone; }
+function getSession(){ return localStorage.getItem(SESSION_KEY); }
+function setSession(phone){ localStorage.setItem(SESSION_KEY, phone); }
+function clearSession(){ localStorage.removeItem(SESSION_KEY); }
+
+function loadAccountData(phone){
+  charts = {};
+  Object.keys(state).forEach(k=>delete state[k]);
+  const raw = localStorage.getItem(dataKeyFor(phone));
+  if(raw){
+    try{
+      const parsed = JSON.parse(raw);
+      habits = (parsed.habits && parsed.habits.length) ? parsed.habits : defaultHabits();
+      nextHabitId = parsed.nextHabitId || (Math.max(...habits.map(h=>h.id))+1);
+      Object.keys(parsed.state||{}).forEach(k=>{ state[k] = parsed.state[k]; });
+      return;
+    }catch(e){ console.warn("Could not load saved data:", e); }
+  }
+  habits = defaultHabits();
+  ensureMonth(0).checks[habits[0].id] = [true,true,true,false,true,true,...Array(25).fill(false)];
+}
+
+function saveState(){
+  if(!loggedInPhone) return;
+  try{
+    localStorage.setItem(dataKeyFor(loggedInPhone), JSON.stringify({ habits, state, nextHabitId }));
+  }catch(e){ console.warn("Could not save:", e); }
+}
+window.addEventListener('beforeunload', saveState);
+document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') saveState(); });
+
+function login(phone){
+  setSession(phone);
+  loggedInPhone = phone;
+  loadAccountData(phone);
+  currentView = 0;
+  buildNav();
+  render();
+}
+function logout(){
+  saveState();
+  clearSession();
+  loggedInPhone = null;
+  render();
+}
+
+// ---- backup / restore ----
+function exportData(){
+  const payload = { habits, state, nextHabitId, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `youka_habit_backup_${loggedInPhone||'data'}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function handleImportFile(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!parsed.habits || !Array.isArray(parsed.habits)) throw new Error('bad file');
+      habits = parsed.habits;
+      nextHabitId = parsed.nextHabitId || (Math.max(...habits.map(h=>h.id))+1);
+      Object.keys(state).forEach(k=>delete state[k]);
+      Object.keys(parsed.state||{}).forEach(k=>{ state[k]=parsed.state[k]; });
+      saveState();
+      buildNav();
+      render();
+      alert(t('importSuccess'));
+    }catch(err){
+      alert(t('importError'));
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ---- reminders ----
+function reminderKeyFor(phone){ return 'youka_reminder_time_'+phone; }
+function getReminderTime(){ return loggedInPhone ? localStorage.getItem(reminderKeyFor(loggedInPhone)) : null; }
+function setReminderTimeStorage(v){ if(loggedInPhone) localStorage.setItem(reminderKeyFor(loggedInPhone), v); }
+function clearReminderTime(){ if(loggedInPhone) localStorage.removeItem(reminderKeyFor(loggedInPhone)); }
+function enableReminder(hhmm){
+  if(!('Notification' in window)){ alert(t('notifUnsupported')); return; }
+  Notification.requestPermission().then(perm=>{
+    if(perm==='granted'){
+      setReminderTimeStorage(hhmm);
+      alert(t('reminderSavedMsg'));
+    } else {
+      alert(t('notifDenied'));
+    }
+  });
+}
+function checkReminder(){
+  if(!loggedInPhone) return;
+  const time = getReminderTime();
+  if(!time) return;
+  if(!('Notification' in window) || Notification.permission!=='granted') return;
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const current = `${hh}:${mm}`;
+  const lastFiredKey = 'youka_reminder_last_'+loggedInPhone;
+  const todayStr = now.toDateString();
+  if(current===time && localStorage.getItem(lastFiredKey)!==todayStr){
+    const m = now.getMonth(), d = now.getDate()-1;
+    const s = ensureMonth(m);
+    const pending = habits.filter(h=> !(s.checks[h.id] && s.checks[h.id][d]));
+    const body = pending.length
+      ? (lang==='ar' ? `باقيلك ${pending.length} عادة النهاردة` : `${pending.length} habits left today`)
+      : (lang==='ar' ? 'كملت كل عاداتك النهاردة! 🎉' : 'All habits done today! 🎉');
+    new Notification('YOUKA_EDITS', { body });
+    localStorage.setItem(lastFiredKey, todayStr);
+  }
+}
+setInterval(checkReminder, 30000);
+
+// ---- derived data helpers ----
+function ensureMonth(m){
+  if(!state[m]) state[m] = { checks:{}, mood: Array(DAYS_IN_MONTH[m]).fill("") };
+  const s = state[m];
+  habits.forEach(h=>{
+    if(!s.checks[h.id]) s.checks[h.id] = Array(DAYS_IN_MONTH[m]).fill(false);
+  });
+  if(s.mood.length < DAYS_IN_MONTH[m]){
+    while(s.mood.length < DAYS_IN_MONTH[m]) s.mood.push("");
+  }
+  return s;
+}
+function monthProgress(m){
+  const s = ensureMonth(m);
+  const days = DAYS_IN_MONTH[m];
+  let done=0, total=habits.length*days;
+  habits.forEach(h=>s.checks[h.id].forEach(v=>{if(v)done++;}));
+  return total? done/total : 0;
+}
+function monthCompleted(m){
+  const s = ensureMonth(m);
+  let done=0;
+  habits.forEach(h=>s.checks[h.id].forEach(v=>{if(v)done++;}));
+  return done;
+}
+function dailyProgress(m){
+  const s = ensureMonth(m);
+  const days = DAYS_IN_MONTH[m];
+  const arr = [];
+  for(let d=0; d<days; d++){
+    let done=0;
+    habits.forEach(h=>{ if(s.checks[h.id][d]) done++; });
+    arr.push(habits.length? done/habits.length : 0);
+  }
+  return arr;
+}
+
+// ---- streaks & achievements ----
+function flattenHabit(h){
+  let arr = [];
+  for(let m=0;m<12;m++){
+    const s = ensureMonth(m);
+    arr = arr.concat(s.checks[h.id]);
+  }
+  return arr;
+}
+function bestStreak(h){
+  const arr = flattenHabit(h);
+  let best=0, cur=0;
+  arr.forEach(v=>{ if(v){ cur++; if(cur>best) best=cur; } else cur=0; });
+  return best;
+}
+function todayIndexFlat(){
+  const now = new Date();
+  const mo = now.getMonth(), da = now.getDate()-1;
+  let idx=0;
+  for(let m=0;m<mo;m++) idx += DAYS_IN_MONTH[m];
+  return idx + da;
+}
+function currentStreak(h){
+  const arr = flattenHabit(h);
+  const idx = Math.min(todayIndexFlat(), arr.length-1);
+  let cur=0;
+  for(let i=idx;i>=0;i--){ if(arr[i]) cur++; else break; }
+  return cur;
+}
+function totalCheckins(h){ return flattenHabit(h).filter(Boolean).length; }
+function totalCheckinsAll(){ return habits.reduce((sum,h)=>sum+totalCheckins(h),0); }
+function bestStreakAll(){ return habits.reduce((mx,h)=>Math.max(mx,bestStreak(h)),0); }
+function bestPerfectStreak(){
+  if(!habits.length) return 0;
+  const flatPerHabit = habits.map(h=>flattenHabit(h));
+  const len = flatPerHabit[0].length;
+  let best=0, cur=0;
+  for(let i=0;i<len;i++){
+    const allDone = flatPerHabit.every(arr=>arr[i]);
+    if(allDone){ cur++; if(cur>best) best=cur; } else cur=0;
+  }
+  return best;
+}
+function achievementValue(type){
+  if(type==='streak') return bestStreakAll();
+  if(type==='total') return totalCheckinsAll();
+  if(type==='perfect') return bestPerfectStreak();
+  return 0;
+}
+function renderAchievements(){
+  let html = `<div class="section-title">${t('achievementsTitle')}</div><div class="badges-grid">`;
+  BADGE_DEFS.forEach(b=>{
+    const val = achievementValue(b.type);
+    const earned = val >= b.min;
+    const label = t(BADGE_KEY_MAP[b.id]);
+    html += `<div class="badge-card ${earned?'earned':'locked'}">
+      <div class="badge-emoji">${earned?b.emoji:'🔒'}</div>
+      <div class="badge-label">${label}</div>
+      <div class="badge-progress">${earned ? (lang==='ar'?'اتحققت':'Unlocked') : Math.min(val,b.min)+'/'+b.min}</div>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+// ---- insights ----
+function generateInsights(m){
+  const tips = [];
+  const s = ensureMonth(m);
+  const days = DAYS_IN_MONTH[m];
+  const actualsByHabit = habits.map(h=>({ h, actual: s.checks[h.id].filter(Boolean).length }));
+  const anyData = actualsByHabit.some(o=>o.actual>0);
+  if(!anyData) return tips;
+
+  const sorted = [...actualsByHabit].sort((a,b)=>b.actual-a.actual);
+  const best = sorted[0], weak = sorted[sorted.length-1];
+  if(best.actual>0){
+    tips.push(lang==='ar'
+      ? `أقوى عادة عندك الشهر ده هي "${best.h.name}" (${best.actual}/${days} يوم). كمّل عليها! 💪`
+      : `Your strongest habit this month is "${best.h.name}" (${best.actual}/${days} days). Keep it up! 💪`);
+  }
+  if(weak.actual < days*0.4){
+    tips.push(lang==='ar'
+      ? `عادة "${weak.h.name}" هي الأضعف (${weak.actual}/${days} يوم). جرّب تربطها بعادة تانية بتعملها بالفعل عشان تسهل عليك.`
+      : `"${weak.h.name}" is your weakest habit (${weak.actual}/${days} days). Try pairing it right after a habit you already do consistently.`);
+  }
+
+  const weekdayTotals = Array(7).fill(0), weekdayCounts = Array(7).fill(0);
+  for(let d=0; d<days; d++){
+    const wd = d%7;
+    let done=0; habits.forEach(h=>{ if(s.checks[h.id][d]) done++; });
+    weekdayTotals[wd]+=done; weekdayCounts[wd]++;
+  }
+  const weekdayAvg = weekdayTotals.map((tot,i)=> weekdayCounts[i] ? tot/weekdayCounts[i] : 0);
+  const maxWd = weekdayAvg.indexOf(Math.max(...weekdayAvg));
+  const minWd = weekdayAvg.indexOf(Math.min(...weekdayAvg));
+  if(Math.max(...weekdayAvg) > 0 && maxWd!==minWd){
+    tips.push(lang==='ar'
+      ? `بتخلّص عاداتك أكتر أيام ${weekdayLetter(maxWd)}، وبتقل أيام ${weekdayLetter(minWd)}. حاول تحط تذكير أقوى في الأيام الضعيفة.`
+      : `You complete the most on ${weekdayLetter(maxWd)} and the least on ${weekdayLetter(minWd)}. Consider a stronger reminder on your weaker days.`);
+  }
+
+  if(m>0){
+    const prevProgress = monthProgress(m-1);
+    const curProgress = monthProgress(m);
+    if(prevProgress>0){
+      const diff = Math.round((curProgress-prevProgress)*100);
+      if(diff>0) tips.push(lang==='ar' ? `تقدمك زاد ${diff}% عن ${monthName(m-1)}. 🎉` : `Your progress is up ${diff}% from ${monthName(m-1)}. 🎉`);
+      else if(diff<0) tips.push(lang==='ar' ? `تقدمك قلّ ${Math.abs(diff)}% عن ${monthName(m-1)}، مفيش مشكلة، حاول تركز أسبوع بأسبوع.` : `Your progress dropped ${Math.abs(diff)}% from ${monthName(m-1)} — no worries, try focusing week by week.`);
+    }
+  }
+
+  const moodPairs = [];
+  for(let d=0; d<days; d++){
+    const moodVal = parseFloat(s.mood[d]);
+    if(!isNaN(moodVal)){
+      let done=0; habits.forEach(h=>{ if(s.checks[h.id][d]) done++; });
+      moodPairs.push({ rate: habits.length? done/habits.length : 0, mood: moodVal });
+    }
+  }
+  if(moodPairs.length>=5){
+    const high = moodPairs.filter(p=>p.rate>=0.7);
+    const low = moodPairs.filter(p=>p.rate<0.4);
+    if(high.length>=2 && low.length>=2){
+      const avgHigh = high.reduce((a,p)=>a+p.mood,0)/high.length;
+      const avgLow = low.reduce((a,p)=>a+p.mood,0)/low.length;
+      if(avgHigh - avgLow >= 1){
+        tips.push(lang==='ar'
+          ? `مزاجك بيبقى أحسن (${avgHigh.toFixed(1)} مقابل ${avgLow.toFixed(1)}) في الأيام اللي بتخلّص فيها معظم عاداتك.`
+          : `Your mood is noticeably better (${avgHigh.toFixed(1)} vs ${avgLow.toFixed(1)}) on days you complete most of your habits.`);
+      }
+    }
+  }
+
+  const bestCur = habits.map(h=>({h, cur:currentStreak(h)})).sort((a,b)=>b.cur-a.cur)[0];
+  if(bestCur && bestCur.cur>=3){
+    tips.push(lang==='ar'
+      ? `عندك ستريك ${bestCur.cur} يوم متواصل في "${bestCur.h.name}"! متكسروش السلسلة. 🔥`
+      : `You're on a ${bestCur.cur}-day streak for "${bestCur.h.name}"! Don't break the chain. 🔥`);
+  }
+
+  return tips.slice(0,5);
+}
+
+// ---- nav / topbar ----
+function buildNav(){
+  const nav = document.getElementById('monthNav');
+  nav.innerHTML = '';
+  if(!loggedInPhone) return;
+  MONTHS_EN.forEach((m,i)=>{
+    const b = document.createElement('button');
+    b.textContent = monthShort(i);
+    b.onclick = ()=>{ currentView=i; render(); };
+    nav.appendChild(b);
+  });
+  const d = document.createElement('button');
+  d.textContent = t('dashboard');
+  d.className = 'dash';
+  d.onclick = ()=>{ currentView='dash'; render(); };
+  nav.appendChild(d);
+}
+function renderTopbarActions(){
+  const el = document.getElementById('topbarActions');
+  let html = '';
+  if(loggedInPhone){
+    html += `<div class="reminder-wrap">
+      <button class="ghost-btn" id="reminderBtn" title="${t('reminderTitle')}">🔔</button>
+      <div class="reminder-panel" id="reminderPanel" hidden>
+        <input type="time" id="reminderTimeInput" value="${getReminderTime()||'20:00'}"/>
+        <button class="ghost-btn" id="reminderSaveBtn">${t('reminderSave')}</button>
+        <button class="ghost-btn" id="reminderOffBtn">${t('reminderOff')}</button>
+        <div class="reminder-note">${t('reminderNote')}</div>
+      </div>
+    </div>`;
+    html += `<button class="ghost-btn" id="exportBtn">⭳ ${t('exportBtn')}</button>`;
+    html += `<button class="ghost-btn" id="importTriggerBtn">⭱ ${t('importBtn')}</button>`;
+    html += `<input type="file" id="importFileInput" accept="application/json" style="display:none"/>`;
+    html += `<button class="ghost-btn" id="printBtn">🖨 ${t('printBtn')}</button>`;
+    html += `<button class="ghost-btn" id="logoutBtn">${t('logoutBtn')}</button>`;
+  }
+  html += `<button class="ghost-btn" id="langBtn">${t('langBtn')}</button>`;
+  el.innerHTML = html;
+
+  document.getElementById('langBtn').addEventListener('click', ()=>{
+    setLang(lang==='ar' ? 'en' : 'ar');
+    buildNav();
+    render();
+  });
+
+  if(loggedInPhone){
+    document.getElementById('logoutBtn').addEventListener('click', ()=>{
+      if(confirm(t('logoutConfirm'))) logout();
+    });
+    document.getElementById('exportBtn').addEventListener('click', exportData);
+    document.getElementById('importTriggerBtn').addEventListener('click', ()=>{
+      document.getElementById('importFileInput').click();
+    });
+    document.getElementById('importFileInput').addEventListener('change', handleImportFile);
+    document.getElementById('printBtn').addEventListener('click', ()=>window.print());
+
+    const reminderBtn = document.getElementById('reminderBtn');
+    const panel = document.getElementById('reminderPanel');
+    reminderBtn.addEventListener('click', ()=>{ panel.hidden = !panel.hidden; });
+    document.getElementById('reminderSaveBtn').addEventListener('click', ()=>{
+      const val = document.getElementById('reminderTimeInput').value;
+      if(!val) return;
+      enableReminder(val);
+      panel.hidden = true;
+    });
+    document.getElementById('reminderOffBtn').addEventListener('click', ()=>{
+      clearReminderTime();
+      alert(t('reminderOffMsg'));
+      panel.hidden = true;
+    });
+  }
+}
+
+// ---- login screen ----
+function renderLoginView(){
+  buildNav();
+  renderTopbarActions();
+  document.getElementById('content').innerHTML = `
+    <div class="login-wrap">
+      <h1>${t('loginTitle')}</h1>
+      <p>${t('loginSubtitle')}</p>
+      <input type="tel" id="phoneInput" placeholder="${t('phonePlaceholder')}" autocomplete="tel"/>
+      <button class="primary" id="loginBtn">${t('continueBtn')}</button>
+      <div class="login-note">${t('loginNote')}</div>
+    </div>`;
+  const go = ()=>{
+    const val = document.getElementById('phoneInput').value.trim();
+    if(!val) return;
+    login(val);
+  };
+  document.getElementById('loginBtn').addEventListener('click', go);
+  document.getElementById('phoneInput').addEventListener('keydown', e=>{ if(e.key==='Enter') go(); });
+}
+
+// ---- month view ----
+function renderMonth(m){
+  const days = DAYS_IN_MONTH[m];
+  const s = ensureMonth(m);
+  const nWeeks = Math.ceil(days/7);
+  const habitsCount = habits.length;
+  const completed = monthCompleted(m);
+  const progress = monthProgress(m);
+
+  let html = `<h1 class="title">${monthName(m)}</h1>`;
+  html += `<div class="stats">
+    <div><div class="stat-label">${t('habitsStat')}</div><div class="stat-value">${habitsCount}</div></div>
+    <div><div class="stat-label">${t('completedStat')}</div><div class="stat-value">${completed}</div></div>
+    <div><div class="stat-label">${t('progressStat')}</div>
+      <div class="progress-wrap">
+        <div class="progress-track"><div class="progress-fill" style="width:${(progress*100).toFixed(0)}%"></div></div>
+        <div class="stat-value" style="font-size:15px;color:var(--ink);background:var(--gold);padding:2px 10px;border-radius:10px;">${(progress*100).toFixed(0)}%</div>
+      </div>
+    </div>
+    <div class="wheel-wrap">
+      <canvas id="wheelChart"></canvas>
+      <div class="wheel-center"><b id="wheelCenterPct">${(progress*100).toFixed(0)}%</b><span>${t('wheelTitle')}</span></div>
+    </div>
+  </div>`;
+
+  // table
+  html += `<div class="table-wrap"><table class="habit-table"><thead>`;
+  html += `<tr><th class="myhabits-th" rowspan="2">${t('myHabits')}</th>`;
+  for(let w=0; w<nWeeks; w++){
+    const span = Math.min(7, days - w*7);
+    html += `<th class="week-th" colspan="${span}">${t('week')} ${w+1}</th>`;
+  }
+  html += `<th class="week-th" style="background:transparent;border:none;"></th></tr><tr>`;
+  for(let d=0; d<days; d++){
+    html += `<th class="weekday-th">${weekdayLetter(d)}</th>`;
+  }
+  html += `<th class="weekday-th" style="background:transparent;border:none;"></th></tr><tr><th class="myhabits-th" style="padding:2px 10px !important;"></th>`;
+  for(let d=0; d<days; d++){ html += `<th class="daynum-th">${d+1}</th>`; }
+  html += `<th class="daynum-th" style="background:transparent;border:none;"></th></tr></thead><tbody>`;
+
+  habits.forEach((h,hi)=>{
+    const c = habitColor(h);
+    html += `<tr class="${hi%2===0?'odd':'even'}">
+      <td class="habit-name" style="border-inline-start:4px solid ${c};">
+        <input class="habit-name-input" data-hid="${h.id}" value="${h.name.replace(/"/g,'&quot;')}"/>
+      </td>`;
+    for(let d=0; d<days; d++){
+      const checked = s.checks[h.id][d];
+      const styleAttr = checked ? ` style="background:${c};color:#fff;"` : '';
+      html += `<td class="chk${checked?' checked':''}" data-h="${h.id}" data-d="${d}"${styleAttr}>\u2713</td>`;
+    }
+    html += `<td class="del-habit" data-hid="${h.id}" title="${t('removeTitle')}">\u2715</td>`;
+    html += `</tr>`;
+  });
+
+  // add-habit row
+  html += `<tr><td class="add-habit-cell" colspan="${days+2}">${t('addHabit')}</td></tr>`;
+
+  // summary rows
+  const daily = dailyProgress(m);
+  html += `<tr class="summary-row"><td class="summary-label">${t('progressLabel')}</td>`;
+  daily.forEach(p=>html += `<td>${Math.round(p*100)}%</td>`);
+  html += `<td></td></tr><tr class="summary-row"><td class="summary-label">${t('doneLabel')}</td>`;
+  for(let d=0; d<days; d++){
+    let done=0; habits.forEach(h=>{if(s.checks[h.id][d])done++;});
+    html += `<td>${done}</td>`;
+  }
+  html += `<td></td></tr><tr class="summary-row"><td class="summary-label">${t('notDoneLabel')}</td>`;
+  for(let d=0; d<days; d++){
+    let done=0; habits.forEach(h=>{if(s.checks[h.id][d])done++;});
+    html += `<td>${habitsCount-done}</td>`;
+  }
+  html += `<td></td></tr>`;
+  html += `</tbody></table></div>`;
+
+  // area chart
+  html += `<div class="chart-box"><canvas id="areaChart" height="90"></canvas></div>`;
+
+  // mental state
+  html += `<div class="section-title" style="margin-top:8px;">${t('mentalState')}</div>`;
+  html += `<div class="table-wrap"><table class="habit-table"><tbody><tr class="mood-row">`;
+  html += `<td class="mood-label">${t('moodLabel')}</td>`;
+  for(let d=0; d<days; d++){
+    html += `<td><input class="mood-input" data-mood-d="${d}" maxlength="2" value="${s.mood[d]}"/></td>`;
+  }
+  html += `</tr></tbody></table></div>`;
+
+  // analysis
+  html += `<div class="section-title">${t('analysis')}</div>`;
+  html += `<div class="analysis-flex">`;
+  html += `<table class="analysis-table"><thead><tr><th>${t('habitCol')}</th><th>${t('goalCol')}</th><th>${t('actualCol')}</th><th>${t('streakCol')}</th><th>${t('bestStreakCol')}</th></tr></thead><tbody>`;
+  habits.forEach(h=>{
+    const actual = s.checks[h.id].filter(Boolean).length;
+    const cur = currentStreak(h), best = bestStreak(h);
+    html += `<tr><td style="text-align:left;">${h.name}</td><td>${days}</td><td>${actual}</td><td>${cur>0?'🔥'+cur:cur}</td><td>${best}</td></tr>`;
+  });
+  html += `</tbody></table>`;
+  html += `<div class="chart-box" style="flex:1;min-width:320px;"><canvas id="barChart" height="160"></canvas></div>`;
+  html += `</div>`;
+
+  // insights
+  html += `<div class="section-title">${t('insightsTitle')}</div>`;
+  const tips = generateInsights(m);
+  if(tips.length){
+    html += `<div class="insights-grid">` + tips.map((tip,i)=>`<div class="insight-card" style="border-inline-start:4px solid ${PALETTE[i%PALETTE.length]};">${tip}</div>`).join('') + `</div>`;
+  } else {
+    html += `<p style="font-size:13px;color:var(--gray-med);">${t('noInsightsYet')}</p>`;
+  }
+
+  document.getElementById('content').innerHTML = html;
+
+  // wire checkbox clicks
+  document.querySelectorAll('.chk').forEach(cell=>{
+    cell.addEventListener('click', ()=>{
+      const hid = +cell.dataset.h, d = +cell.dataset.d;
+      s.checks[hid][d] = !s.checks[hid][d];
+      saveState();
+      renderMonth(m); // full re-render keeps everything in sync
+    });
+  });
+  document.querySelectorAll('.mood-input').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      s.mood[+inp.dataset.moodD] = inp.value;
+      saveState();
+    });
+  });
+  // editable habit names (commit on blur / Enter, so typing isn't interrupted)
+  document.querySelectorAll('.habit-name-input').forEach(inp=>{
+    const commit = ()=>{
+      const h = habits.find(x=>x.id===+inp.dataset.hid);
+      if(h){ h.name = inp.value.trim() || t('untitled'); saveState(); renderMonth(m); }
+    };
+    inp.addEventListener('blur', commit);
+    inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ inp.blur(); } });
+  });
+  // delete habit
+  document.querySelectorAll('.del-habit').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const hid = +btn.dataset.hid;
+      if(habits.length<=1){ alert(t('keepAtLeast')); return; }
+      if(!confirm(t('removeConfirm'))) return;
+      habits = habits.filter(h=>h.id!==hid);
+      Object.keys(state).forEach(mi=>{ delete state[mi].checks[hid]; });
+      saveState();
+      renderMonth(m);
+    });
+  });
+  // add habit
+  const addCell = document.querySelector('.add-habit-cell');
+  if(addCell){
+    addCell.addEventListener('click', ()=>{
+      const h = newHabit(t('newHabitDefault'));
+      habits.push(h);
+      Object.keys(state).forEach(mi=>{
+        state[mi].checks[h.id] = Array(DAYS_IN_MONTH[mi]).fill(false);
+      });
+      saveState();
+      renderMonth(m);
+    });
+  }
+
+  drawAreaChart(m);
+  drawBarChart(m);
+  drawWheelChart(m);
+}
+
+function drawAreaChart(m){
+  const ctx = document.getElementById('areaChart');
+  if(charts.area) charts.area.destroy();
+  const daily = dailyProgress(m).map(v=>Math.round(v*100));
+  charts.area = new Chart(ctx, {
+    type:'line',
+    data:{ labels: daily.map((_,i)=>i+1),
+      datasets:[{ data: daily, borderColor:'#1B3FE0', backgroundColor:'#DCE4F7', fill:true, tension:.35, pointRadius:0, borderWidth:3 }]},
+    options:{ plugins:{legend:{display:false}}, scales:{ y:{ min:0, max:120, ticks:{callback:v=>v+'%'} } }, responsive:true }
+  });
+}
+function drawBarChart(m){
+  const s = ensureMonth(m);
+  const ctx = document.getElementById('barChart');
+  if(charts.bar) charts.bar.destroy();
+  const actuals = habits.map(h=>s.checks[h.id].filter(Boolean).length);
+  charts.bar = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: habits.map(h=>h.name), datasets:[{ label: t('progressLabel'), data: actuals, backgroundColor: habits.map(habitColor) }]},
+    options:{ indexAxis:'y', plugins:{legend:{display:false},title:{display:true,text:t('progressLabel')}}, responsive:true }
+  });
+}
+function drawWheelChart(m){
+  const s = ensureMonth(m);
+  const ctx = document.getElementById('wheelChart');
+  if(!ctx) return;
+  if(charts.wheel) charts.wheel.destroy();
+  const actuals = habits.map(h=>s.checks[h.id].filter(Boolean).length);
+  const total = actuals.reduce((a,b)=>a+b,0);
+  let data, colors;
+  if(total===0){ data=[1]; colors=['#E3E8F7']; }
+  else { data=actuals; colors=habits.map(habitColor); }
+  charts.wheel = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels: habits.map(h=>h.name), datasets:[{ data, backgroundColor: colors, borderWidth:0 }] },
+    options:{ cutout:'72%', plugins:{ legend:{display:false}, tooltip:{enabled: total>0} }, responsive:true, maintainAspectRatio:true }
+  });
+}
+
+function renderDashboard(){
+  let html = `<h1 class="title">${t('yearlyStats')}</h1>`;
+  html += `<div class="chart-box" style="max-width:1100px;"><canvas id="yearChart" height="70"></canvas></div>`;
+  html += `<div class="dash-grid">`;
+  MONTHS_EN.forEach((mn,i)=>{
+    const p = Math.round(monthProgress(i)*100);
+    const accent = PALETTE[i % PALETTE.length];
+    html += `<div class="month-card" style="border-top-color:${accent};">
+      <h3>${monthName(i)}</h3>
+      <div class="row"><span>${t('numberOfHabits')}</span><b>${habits.length}</b></div>
+      <div class="row"><span>${t('completedCard')}</span><b>${monthCompleted(i)}</b></div>
+      <div class="row progress"><span>${t('progressCard')}</span><b>${p}%</b></div>
+    </div>`;
+  });
+  html += `</div>`;
+  html += renderAchievements();
+  document.getElementById('content').innerHTML = html;
+
+  const ctx = document.getElementById('yearChart');
+  if(charts.year) charts.year.destroy();
+  charts.year = new Chart(ctx, {
+    type:'line',
+    data:{ labels: MONTHS_EN.map((_,i)=>monthShort(i)),
+      datasets:[{ data: MONTHS_EN.map((_,i)=>Math.round(monthProgress(i)*100)), borderColor:'#1B3FE0', backgroundColor:'#DCE4F7', fill:true, tension:.35, pointRadius:4, borderWidth:3, pointBackgroundColor:'#FFC940', pointBorderColor:'#0A1747' }]},
+    options:{ plugins:{legend:{display:false}}, scales:{ y:{ min:0, max:100, ticks:{callback:v=>v+'%'} } }, responsive:true }
+  });
+}
+
+// ---- top-level dispatcher ----
+function render(){
+  if(!loggedInPhone){ renderLoginView(); return; }
+  renderTopbarActions();
+  document.querySelectorAll('#monthNav button').forEach(b=>b.classList.remove('active'));
+  const btns = document.querySelectorAll('#monthNav button');
+  if(currentView==='dash'){ btns[12].classList.add('active'); renderDashboard(); }
+  else { btns[currentView].classList.add('active'); renderMonth(currentView); }
+}
+
+// ---- init ----
+setLang(lang);
+const existingPhone = getSession();
+if(existingPhone){ loggedInPhone = existingPhone; loadAccountData(existingPhone); }
+buildNav();
+render();
+</script>
+</body>
+</html>
